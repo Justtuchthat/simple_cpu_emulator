@@ -12,7 +12,7 @@ dependencies = [
 [[package]]
 name = "json_rw"
 version = "0.1.0"
-source = "git+https://github.com/Justtuchthat/json_rw#9e0ccbea70c4a165ad727acdfeb3de4b46aa3a9a"
+source = "git+https://github.com/Justtuchthat/json_rw#0c05f40d9424319920aa8762663df8e3e0e494f5"
 dependencies = [
  "string-builder",
 ]
