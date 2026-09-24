@@ -20,7 +20,8 @@ fn u16_to_hex(value: u16) -> String {
 }
 
 fn i16_to_hex_compressed(value: i16, mult: usize) -> String {
-    format!("{:#06X}*{}", value, mult)
+    let adjusted_val = ((value as i32) - (i16::MIN as i32)) as u16;
+    format!("{:#06X}*{}", adjusted_val, mult)
 }
 
 fn hex_to_i16(value: &str) -> Option<i16> {
@@ -193,9 +194,47 @@ impl RAM {
         }
     }
 
-    pub fn from_json(_json_map: &HashMap<String, JSONtype>) -> Result<RAM, String> {
-        Ok(Self::default())
+    pub fn from_json(json_map: &HashMap<String, JSONtype>) -> Result<RAM, String> {
+        let ram_json = json_map.get("RAM").unwrap();
+        let ram_list: &Vec<JSONtype>;
+        if let JSONtype::List(list) = ram_json {
+            ram_list = list;
+        } else {
+            return Err("RAM field not a string".to_string());
+        }
+
+        let mut ram = [0i16; u16::MAX as usize + 1];
+        let mut idx = 0usize;
+        for ram_item in ram_list {
+            let value: i16;
+            let mult: usize;
+            if let JSONtype::String(s) = ram_item {
+                if let Some(v) = hex_to_i16(s) {
+                    value = v;
+                    mult = 1;
+                } else if let Some((v, m)) = hex_to_i16_compressed(s) {
+                    value = v;
+                    mult = m;
+                } else {
+                    return Err("Incorrect format in RAM list".to_string());
+                }
+            } else {
+                return Err("RAM list contains non string value".to_string());
+            }
+            for i in 0..mult {
+                if (idx + i) >= (u16::MAX as usize + 1) {
+                    return Err("Too many values passed in RAM list".to_string());
+                }
+                ram[idx + i] = value;
+            }
+            idx += mult;
+        }
+        if idx != (u16::MAX as usize + 1) {
+            return Err("Not enough values passed in RAM list".to_string());
+        }
+        Ok(RAM { ram: ram })
     }
+
     pub fn to_json(self: RAM) -> JSONtype {
         // TODO: add compression for smaller files
         let mut ram_list = Vec::<JSONtype>::new();
